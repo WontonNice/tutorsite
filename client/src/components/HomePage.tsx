@@ -1,34 +1,14 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 
-const MAX_ERROR_DETAILS = 3;
-
 type AuthMode = "login" | "register";
 
-function getApiBases() {
-    const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim();
-    if (configuredBase) {
-        return [configuredBase];
-    }
-
-    const host = window.location.hostname;
-    const normalizedHost = host === "0.0.0.0" ? "localhost" : host;
-
-    return [
-        `${window.location.protocol}//${normalizedHost}:8080`,
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ];
-}
-
-const API_BASES = [...new Set(getApiBases())];
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:8080";
 
 async function parseResponseBody(response: Response) {
     const responseText = await response.text();
-
-    if (!responseText) {
-        return null;
-    }
+    if (!responseText) return null;
 
     try {
         return JSON.parse(responseText) as Record<string, unknown>;
@@ -38,11 +18,7 @@ async function parseResponseBody(response: Response) {
 }
 
 function getErrorMessage(error: unknown) {
-    if (error instanceof Error) {
-        return error.message;
-    }
-
-    return String(error);
+    return error instanceof Error ? error.message : String(error);
 }
 
 function HomePage() {
@@ -66,53 +42,32 @@ function HomePage() {
             ? { username, password, firstName, lastName }
             : { username, password };
 
-        const attemptErrors: string[] = [];
+        const requestUrl = `${API_BASE}${endpoint}`;
 
         try {
-            for (const apiBase of API_BASES) {
-                const requestUrl = `${apiBase}${endpoint}`;
+            const response = await fetch(requestUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
 
-                try {
-                    const response = await fetch(requestUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                    });
+            const result = await parseResponseBody(response);
 
-                    const result = await parseResponseBody(response);
+            if (!response.ok) {
+                const serverError =
+                    (typeof result?.error === "string" && result.error) ||
+                    (typeof result?.message === "string" && result.message) ||
+                    (result?.raw && typeof result.raw === "string" && result.raw) ||
+                    `HTTP ${response.status}`;
 
-                    if (!response.ok) {
-                        const serverError =
-                            (typeof result?.error === "string" && result.error) ||
-                            (typeof result?.message === "string" && result.message) ||
-                            `HTTP ${response.status}`;
-
-                        const diagnostic = `${requestUrl} -> ${serverError}`;
-                        attemptErrors.push(diagnostic);
-                        console.error("Auth request failed:", diagnostic, result);
-
-                        continue;
-                    }
-
-                    setMessage(
-                        isRegister ? "Registration successful!" : "Login successful!"
-                    );
-                    return;
-                } catch (error) {
-                    const diagnostic = `${requestUrl} -> ${getErrorMessage(error)}`;
-                    attemptErrors.push(diagnostic);
-                    console.error("Auth request threw:", diagnostic, error);
-                }
+                setMessage(`${requestUrl} -> ${serverError}`);
+                return;
             }
 
-            const compactDiagnostics = attemptErrors.slice(0, MAX_ERROR_DETAILS).join(" | ");
-            const extraCount = Math.max(attemptErrors.length - MAX_ERROR_DETAILS, 0);
-            const extraSuffix = extraCount > 0 ? ` (+${extraCount} more)` : "";
-
+            setMessage(isRegister ? "Registration successful!" : "Login successful!");
+        } catch (error) {
             setMessage(
-                `Could not reach backend on port 8080. ${compactDiagnostics}${extraSuffix}`
+                `Could not reach backend at ${API_BASE}. ${getErrorMessage(error)}`
             );
         } finally {
             setIsLoading(false);

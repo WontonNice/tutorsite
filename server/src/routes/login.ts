@@ -5,66 +5,68 @@ const router = Router();
 
 const supabase = createClient(
     process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE!
+    process.env.SUPABASE_SERVICE_ROLE! // or SUPABASE_SECRET_KEY
 );
 
 router.post("/", async (req, res) => {
     try {
-        let { username, password } = req.body ?? {};
+        const { username, password } = req.body ?? {};
+        if (typeof username !== "string" || typeof password !== "string") {
+            return res.status(400).json({ error: "Missing username or password" });
+        }
 
         const { data, error } = await supabase
             .from("users")
-            .select(
-                "id, username, password, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak"
-            )
-            .eq("username", username)
+            .select("id, username, password, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak")
+            .eq("username", username.trim())
             .single();
 
         if (error || !data) {
             return res.status(401).json({ error: "Invalid username or password" });
         }
 
-        if (data.password !== password) {
+        // NOTE: This is plaintext compare; replace with bcrypt.compare once you hash passwords
+        if (data.password !== password.trim()) {
             return res.status(401).json({ error: "Invalid username or password" });
         }
 
-        //Streak
+        // streak calc
         const now = new Date();
         const last = data.last_login_at ? new Date(data.last_login_at) : null;
         const prev = Number.isFinite(data.streak_count) ? data.streak_count : 0;
 
         let newStreak = prev;
-        if (!last) {
-            newStreak = 1;
-        } else {
+        if (!last) newStreak = 1;
+        else {
             const diffHours = (now.getTime() - last.getTime()) / (1000 * 60 * 60);
             if (diffHours >= 48) newStreak = 1;
-            else if (diffHours >= 24) newStreak++;
-            else newStreak = prev;
+            else if (diffHours >= 24) newStreak = prev + 1;
         }
 
-        const BestStreak = Math.max(data.best_streak ?? 0, newStreak);
+        const bestStreak = Math.max(data.best_streak ?? 0, newStreak);
 
-        const { data: updated } = await supabase
+        const { data: updated, error: upErr } = await supabase
             .from("users")
             .update({
                 last_login_at: now.toISOString(),
                 streak_count: newStreak,
-                best_streak: BestStreak,
+                best_streak: bestStreak,
             })
             .eq("id", data.id)
-            .select(
-                "id, username, password, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak"
-            )
+            .select("id, username, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak")
             .single();
+
+        if (upErr || !updated) {
+            return res.status(500).json({ error: "Failed to update login stats" });
+        }
 
         const user = {
             ...updated,
-            role: "student"
-        }
+            role: updated.role === "teacher" ? "teacher" : "student",
+        };
 
-        res.status(200).json({ data });
-    } catch (err: any) {
+        return res.status(200).json({ data: user });
+    } catch (err) {
         console.error("LOGIN_ERROR:", err);
         return res.status(500).json({ error: "Server error" });
     }
