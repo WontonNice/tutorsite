@@ -1,14 +1,7 @@
-import StudentDashboard from "./components/StudentDashboard"
-import { useState } from "react"
+import HomePage from "./components/HomePage";
 
 function App() {
-  const [count, setCount] = useState(0);
-  return (
-    <>
-      <StudentDashboard />
-      <button onClick={() => setCount(count + 1)} >{count}</button>
-    </>
-  )
+  return <HomePage />;
 }
 
-export default App
+export default App;

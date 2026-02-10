@@ -1,5 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import RegisterRouter from "./routes/register";
+import LoginRouter from "./routes/login";
 
 const app = express();
 const corsOptions = {
@@ -8,10 +11,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-app.get('/api', (req, res) => {
-    res.send('Hello!');
-});
+app.use(express.json());
+app.use("/register", RegisterRouter);
+app.use("/login", LoginRouter);
 
 app.listen(8080, () => {
     console.log('Server is running on port 8080');
