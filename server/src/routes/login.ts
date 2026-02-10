@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
 
         const { data, error } = await supabase
             .from("users")
-            .select("id, username, password, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak")
+            .select("id, username, password, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak, enrolled_courses")
             .eq("username", username.trim())
             .single();
 
