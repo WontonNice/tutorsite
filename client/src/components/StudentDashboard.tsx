@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { AuthUser } from "../authStorage";
 
 type StudentDashboardProps = {
@@ -5,14 +6,41 @@ type StudentDashboardProps = {
     onLogout: () => void;
 };
 
+const COURSE_PAGE_LABELS: Record<string, string> = {
+    a: "precalculus",
+};
+
 function StudentDashboard({ authUser, onLogout }: StudentDashboardProps) {
+    const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+
+    const selectedCourseLabel = useMemo(() => {
+        if (!selectedCourse) return "";
+
+        return COURSE_PAGE_LABELS[selectedCourse] || selectedCourse;
+    }, [selectedCourse]);
+
+    if (selectedCourse) {
+        return (
+            <>
+                <h1>{selectedCourseLabel}</h1>
+                <p>Course: {selectedCourse}</p>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        setSelectedCourse(null);
+                    }}
+                >
+                    Back to student dashboard
+                </button>
+            </>
+        );
+    }
 
     return (
         <>
             <h1>Student Dashboard</h1>
-            <p>
-                Welcome, {authUser.firstName || authUser.username}
-            </p>
+            <p>Welcome, {authUser.firstName || authUser.username}</p>
 
             <table style={{ borderCollapse: "collapse", marginBottom: 16 }}>
                 <thead>
@@ -28,7 +56,13 @@ function StudentDashboard({ authUser, onLogout }: StudentDashboardProps) {
                             ) : (
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                     {authUser.enrolledCourses.map((course) => (
-                                        <button type="button" key={course}>
+                                        <button
+                                            type="button"
+                                            key={course}
+                                            onClick={() => {
+                                                setSelectedCourse(course);
+                                            }}
+                                        >
                                             {course}
                                         </button>
                                     ))}
