@@ -1,37 +1,12 @@
-import { useMemo, useState } from "react";
 import type { AuthUser } from "../authStorage";
 
 type StudentDashboardProps = {
     authUser: AuthUser;
     onLogout: () => void;
+    onOpenCoursePage: (course: string) => void;
 };
 
-function StudentDashboard({ authUser, onLogout }: StudentDashboardProps) {
-    const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-
-    const selectedCourseLabel = useMemo(() => {
-        if (!selectedCourse) return "";
-
-        return selectedCourse;
-    }, [selectedCourse]);
-
-    if (selectedCourse) {
-        return (
-            <>
-                <h1>{selectedCourseLabel}</h1>
-                <p>Course: {selectedCourse}</p>
-
-                <button
-                    type="button"
-                    onClick={() => {
-                        setSelectedCourse(null);
-                    }}
-                >
-                    Back to student dashboard
-                </button>
-            </>
-        );
-    }
+function StudentDashboard({ authUser, onLogout, onOpenCoursePage }: StudentDashboardProps) {
 
     return (
         <>
@@ -56,7 +31,7 @@ function StudentDashboard({ authUser, onLogout }: StudentDashboardProps) {
                                             type="button"
                                             key={course}
                                             onClick={() => {
-                                                setSelectedCourse(course);
+                                                onOpenCoursePage(course);
                                             }}
                                         >
                                             {course}
