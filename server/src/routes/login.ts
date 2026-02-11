@@ -8,6 +8,39 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE! // or SUPABASE_SECRET_KEY
 );
 
+function normalizeCourses(courses: unknown): string[] {
+    if (Array.isArray(courses)) {
+        return courses
+            .filter((course): course is string => typeof course === "string")
+            .map((course) => course.trim())
+            .filter(Boolean);
+    }
+
+    if (typeof courses === "string") {
+        const trimmedCourses = courses.trim();
+        if (!trimmedCourses) return [];
+
+        if (
+            (trimmedCourses.startsWith("[") && trimmedCourses.endsWith("]")) ||
+            (trimmedCourses.startsWith("{") && trimmedCourses.endsWith("}"))
+        ) {
+            try {
+                const parsedCourses = JSON.parse(trimmedCourses) as unknown;
+                return normalizeCourses(parsedCourses);
+            } catch {
+                // Fall back to comma-delimited parsing below.
+            }
+        }
+
+        return trimmedCourses
+            .split(",")
+            .map((course) => course.trim())
+            .filter(Boolean);
+    }
+
+    return [];
+}
+
 router.post("/", async (req, res) => {
     try {
         const { username, password } = req.body ?? {};
@@ -53,7 +86,7 @@ router.post("/", async (req, res) => {
                 best_streak: bestStreak,
             })
             .eq("id", data.id)
-            .select("id, username, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak")
+            .select("id, username, role, first_name, last_name, created_at, last_login_at, streak_count, best_streak, enrolled_courses")
             .single();
 
         if (upErr || !updated) {
