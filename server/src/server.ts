@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import RegisterRouter from "./routes/register";
 import LoginRouter from "./routes/login";
+import studentsRouter from "./routes/students";
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '')
@@ -31,6 +32,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/register", RegisterRouter);
 app.use("/login", LoginRouter);
+app.use("/students", studentsRouter);
 
 app.listen(8080, () => {
     console.log('Server is running on port 8080');

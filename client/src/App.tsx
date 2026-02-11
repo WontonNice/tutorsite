@@ -3,25 +3,35 @@ import HomePage from "./components/HomePage";
 import StudentDashboard from "./components/StudentDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
 
-import { getStoredUserRole, setStoredUserRole } from "./authStorage";
-import type { UserRole } from "./authStorage";
+import { getStoredAuthUser, setStoredAuthUser } from "./authStorage";
+import type { AuthUser } from "./authStorage";
 
 function App() {
-  const [userRole, setUserRole] = useState<UserRole | null>(getStoredUserRole);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(getStoredAuthUser);
 
   useEffect(() => {
-    setStoredUserRole(userRole);
-  }, [userRole]);
+    setStoredAuthUser(authUser);
+  }, [authUser]);
 
-  if (userRole === "student") {
-    return <StudentDashboard onLogout={() => setUserRole(null)} />;
+  if (authUser?.role === "student") {
+    return (
+      <StudentDashboard
+        authUser={authUser}
+        onLogout={() => setAuthUser(null)}
+      />
+    );
   }
 
-  if (userRole === "teacher") {
-    return <TeacherDashboard onLogout={() => setUserRole(null)} />;
+  if (authUser?.role === "teacher") {
+    return (
+      <TeacherDashboard
+        authUser={authUser}
+        onLogout={() => setAuthUser(null)}
+      />
+    );
   }
 
-  return <HomePage onLoginSuccess={setUserRole} />;
+  return <HomePage onLoginSuccess={setAuthUser} />;
 }
 
 export default App;

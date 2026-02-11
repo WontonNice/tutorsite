@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import type { AuthUser } from "../authStorage";
 
 type AuthMode = "login" | "register";
-type UserRole = "student" | "teacher";
 
 type HomePageProps = {
-    onLoginSuccess: (userRole: UserRole) => void;
+    onLoginSuccess: (user: AuthUser) => void;
 };
 
 const API_BASE =
@@ -26,30 +26,53 @@ function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error);
 }
 
-function getRoleFromResult(result: Record<string, unknown> | null): UserRole {
-    const rootRole = typeof result?.role === "string" ? result.role : null;
+function parseEnrolledCourses(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
 
-    const dataRole =
-        typeof result?.data === "object" &&
-            result.data &&
-            "role" in result.data &&
-            typeof result.data.role === "string"
-            ? result.data.role
+    return value
+        .filter((course): course is string => typeof course === "string")
+        .map((course) => course.trim())
+        .filter(Boolean);
+}
+
+function getUserFromResult(result: Record<string, unknown> | null): AuthUser {
+    const data =
+        typeof result?.data === "object" && result.data ? result.data : result;
+
+    const roleValue =
+        data && "role" in data && typeof data.role === "string"
+            ? data.role
+            : "student";
+
+    const normalizedRole = roleValue.trim().toLowerCase() === "teacher" ? "teacher" : "student";
+
+    const username =
+        data && "username" in data && typeof data.username === "string"
+            ? data.username
+            : "";
+
+    const firstName =
+        data && "first_name" in data && typeof data.first_name === "string"
+            ? data.first_name
             : null;
 
-    const userRole =
-        typeof result?.user === "object" &&
-            result.user &&
-            "role" in result.user &&
-            typeof result.user.role === "string"
-            ? result.user.role
+    const lastName =
+        data && "last_name" in data && typeof data.last_name === "string"
+            ? data.last_name
             : null;
 
-    const normalizedRole = (dataRole ?? userRole ?? rootRole ?? "student")
-        .trim()
-        .toLowerCase();
+    const enrolledCourses =
+        data && "enrolled_courses" in data
+            ? parseEnrolledCourses(data.enrolled_courses)
+            : [];
 
-    return normalizedRole === "teacher" ? "teacher" : "student";
+    return {
+        role: normalizedRole,
+        username,
+        firstName,
+        lastName,
+        enrolledCourses,
+    };
 }
 
 function HomePage({ onLoginSuccess }: HomePageProps) {
@@ -105,8 +128,8 @@ function HomePage({ onLoginSuccess }: HomePageProps) {
                 return;
             }
 
-            const roleFromResponse = getRoleFromResult(result);
-            onLoginSuccess(roleFromResponse);
+            const userFromResponse = getUserFromResult(result);
+            onLoginSuccess(userFromResponse);
         } catch (error) {
             setMessage(
                 `Could not reach backend at ${API_BASE}. ${getErrorMessage(error)}`
