@@ -6,17 +6,13 @@ type StudentDashboardProps = {
     onLogout: () => void;
 };
 
-const COURSE_PAGE_LABELS: Record<string, string> = {
-    a: "precalculus",
-};
-
 function StudentDashboard({ authUser, onLogout }: StudentDashboardProps) {
     const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
     const selectedCourseLabel = useMemo(() => {
         if (!selectedCourse) return "";
 
-        return COURSE_PAGE_LABELS[selectedCourse] || selectedCourse;
+        return selectedCourse;
     }, [selectedCourse]);
 
     if (selectedCourse) {

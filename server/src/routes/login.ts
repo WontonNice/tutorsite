@@ -96,6 +96,7 @@ router.post("/", async (req, res) => {
         const user = {
             ...updated,
             role: updated.role === "teacher" ? "teacher" : "student",
+            enrolled_courses: normalizeCourses(updated.enrolled_courses),
         };
 
         return res.status(200).json({ data: user });
